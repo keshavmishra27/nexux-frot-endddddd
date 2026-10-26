@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RunnerGameCanvas, RunnerGameState } from "@/components/login/RunnerGameCanvas";
 import { ArrowRight, Lock, User, AlertCircle } from "lucide-react";
+import { isCoreEmail, getCoreDisplayName } from "@/lib/members-data";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,16 +16,16 @@ export default function LoginPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSprintComplete = useCallback(() => {
-    // Store mock session in localStorage / cookies
-    const isCore =
-      identifier.toLowerCase().includes("lead") ||
-      identifier.toLowerCase().includes("core") ||
-      identifier.toLowerCase().includes("arjun");
+    // Store session in localStorage
+    const cleanEmail = identifier.trim().toLowerCase();
+    const isCore = isCoreEmail(cleanEmail);
     const sessionData = {
-      name: isCore ? "Arjun Mehta (Lead)" : (identifier.trim().split("@")[0] || "Cohort Engineer"),
-      email: identifier || "engineer@nexus.org",
+      name: isCore
+        ? getCoreDisplayName(cleanEmail)
+        : (identifier.trim().split("@")[0] || "Cohort Engineer"),
+      email: cleanEmail || "engineer@nexus.org",
       role: isCore ? "CORE" : "MEMBER",
-      department: "Technical",
+      department: isCore ? "Core Technical" : "Technical",
     };
     try {
       localStorage.setItem("nexus-session", JSON.stringify(sessionData));
@@ -74,14 +75,9 @@ export default function LoginPage() {
     }, 500);
   };
 
-  const fillQuickCreds = (role: "lead" | "member") => {
-    if (role === "lead") {
-      setIdentifier("arjun@nexus.org");
-      setPassword("nexus-core-2026");
-    } else {
-      setIdentifier("sarthakgupta1907@nexus.org");
-      setPassword("nexus-dev-2026");
-    }
+  const fillQuickCreds = () => {
+    setIdentifier("sarthakgupta1907@nexus.org");
+    setPassword("nexus-dev-2026");
     handleResetGame();
   };
 
@@ -194,14 +190,7 @@ export default function LoginPage() {
             <div className="flex items-center justify-center gap-2 font-mono text-[10px]">
               <button
                 type="button"
-                onClick={() => fillQuickCreds("lead")}
-                className="px-2.5 py-1 rounded-sm border border-white/20 text-neutral-300 hover:text-white hover:border-white transition-colors cursor-pointer"
-              >
-                Lead (Core Reviewer)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickCreds("member")}
+                onClick={fillQuickCreds}
                 className="px-2.5 py-1 rounded-sm border border-white/20 text-neutral-300 hover:text-white hover:border-white transition-colors cursor-pointer"
               >
                 Member (sarthakgupta1907)

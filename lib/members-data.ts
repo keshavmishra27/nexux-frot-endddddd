@@ -1,3 +1,26 @@
+export const CORE_EMAILS = [
+  "webflask27@gmail.com",
+  "rohitvani07@gmail.com",
+  "mayankiit01aasmaa@gmail.com",
+];
+
+export function isCoreEmail(input?: string | null): boolean {
+  if (!input) return false;
+  const clean = input.trim().toLowerCase();
+  return (
+    CORE_EMAILS.includes(clean) ||
+    CORE_EMAILS.some((email) => email.split("@")[0] === clean)
+  );
+}
+
+export function getCoreDisplayName(email: string): string {
+  const clean = email.trim().toLowerCase();
+  if (clean.includes("webflask27")) return "Keshav Mishra";
+  if (clean.includes("rohitvani07")) return "Rohit Vani";
+  if (clean.includes("mayankiit01aasmaa")) return "Mayank";
+  return clean.split("@")[0] || "Core Lead";
+}
+
 export interface MemberProfile {
   id: string;
   name: string;

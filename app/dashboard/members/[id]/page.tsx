@@ -8,6 +8,7 @@ import { fetchMembers } from "@/lib/supabase-data";
 import { AsciiMorphismAvatar } from "@/components/dashboard/AsciiMorphismAvatar";
 import { GitHubContributionCalendar } from "@/components/dashboard/GitHubContributionCalendar";
 import { useTheme } from "@/lib/theme";
+import { isCoreEmail } from "@/lib/members-data";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -39,11 +40,29 @@ export default function MemberProfilePage({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem("nexus-session");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const email = (parsed.email || "").trim().toLowerCase();
+        if (!isCoreEmail(email)) {
+          router.push("/dashboard");
+          return;
+        }
+      } else {
+        router.push("/login");
+        return;
+      }
+    } catch {
+      router.push("/login");
+      return;
+    }
+
     fetchMembers().then((res) => {
       setMembersList(res);
       setIsLoading(false);
     });
-  }, []);
+  }, [router]);
 
   // Active filter for achievements
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");

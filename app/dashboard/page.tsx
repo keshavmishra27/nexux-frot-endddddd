@@ -39,13 +39,14 @@ import {
   Shield,
   Loader2,
 } from "lucide-react";
+import { isCoreEmail } from "@/lib/members-data";
 
 type UserRole = "CORE" | "MEMBER";
 
 const DEFAULT_USER = {
-  name: "Arjun Mehta",
-  email: "arjun@nexus.org",
-  role: "CORE" as UserRole,
+  name: "Cohort Engineer",
+  email: "member@nexus.org",
+  role: "MEMBER" as UserRole,
   department: "Technical",
   avatarUrl: "/avatars/avatar_1.png",
 };
@@ -64,13 +65,17 @@ export default function DashboardPage() {
       const stored = localStorage.getItem("nexus-session");
       if (stored) {
         const parsed = JSON.parse(stored);
+        const email = (parsed.email || "").trim().toLowerCase();
+        // Strictly assign CORE role only to the 3 designated emails; all others are MEMBER
+        const isCore = isCoreEmail(email);
         // We use setTimeout to avoid 'react-hooks/set-state-in-effect' (synchronous setState)
         setTimeout(() => {
           setCurrentUser({
             ...DEFAULT_USER,
             name: parsed.name || DEFAULT_USER.name,
             email: parsed.email || DEFAULT_USER.email,
-            role: parsed.role || DEFAULT_USER.role,
+            role: isCore ? "CORE" : "MEMBER",
+            department: isCore ? "Core Technical" : (parsed.department || DEFAULT_USER.department),
           });
         }, 0);
       } else {
@@ -88,6 +93,13 @@ export default function DashboardPage() {
 
   // Active section: 1 to 6
   const [activeSection, setActiveSection] = useState<number>(1);
+
+  // If active section is restricted for members (Team Members, Verify, Activity Feed), fallback to 1
+  const effectiveSection =
+    currentUser.role !== "CORE" &&
+    (activeSection === 2 || activeSection === 4 || activeSection === 5)
+      ? 1
+      : activeSection;
 
   // App data state — initialize with mock data as fallbacks
   const [standing, setStanding] = useState<TeamStanding>(INITIAL_STANDING);
@@ -200,12 +212,16 @@ export default function DashboardPage() {
 
   const navItems = [
     { id: 1, label: "Team Performance", icon: Trophy },
-    { id: 2, label: "Team Members", icon: Users },
+    ...(currentUser.role === "CORE"
+      ? [{ id: 2, label: "Team Members", icon: Users, coreOnly: true }]
+      : []),
     { id: 3, label: "Submit Achievement", icon: Send },
     ...(currentUser.role === "CORE"
-      ? [{ id: 4, label: "Verify Achievements", icon: ShieldCheck, coreOnly: true }]
+      ? [
+          { id: 4, label: "Verify Achievements", icon: ShieldCheck, coreOnly: true },
+          { id: 5, label: "Activity & Audit Feed", icon: Activity, coreOnly: true },
+        ]
       : []),
-    { id: 5, label: "Activity & Audit Feed", icon: Activity },
     { id: 6, label: "Nexus System Blueprint", icon: Cpu },
   ];
 
@@ -286,7 +302,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-1 sm:gap-2 py-2 min-w-max">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSection === item.id;
+            const isActive = effectiveSection === item.id;
             return (
               <button
                 key={item.id}
@@ -323,10 +339,10 @@ export default function DashboardPage() {
         )}
 
         {/* Section 1: Team Performance */}
-        {activeSection === 1 && <TeamPerformance standing={standing} members={members} currentUser={currentUser} />}
+        {effectiveSection === 1 && <TeamPerformance standing={standing} members={members} currentUser={currentUser} />}
 
-        {/* Section 2: Team Members (10 Flashcards with ASCII Dissolve) */}
-        {activeSection === 2 && (
+        {/* Section 2: Team Members (Core Only) */}
+        {effectiveSection === 2 && currentUser.role === "CORE" && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-hairline gap-2">
               <div>
@@ -355,7 +371,7 @@ export default function DashboardPage() {
         )}
 
         {/* Section 3: Submit Achievement */}
-        {activeSection === 3 && (
+        {effectiveSection === 3 && (
           <SubmitAchievement
             currentUser={currentUser}
             onSubmitSuccess={handleSubmitSuccess}
@@ -365,7 +381,7 @@ export default function DashboardPage() {
         )}
 
         {/* Section 4: Verify Achievements (Core Only) */}
-        {activeSection === 4 && currentUser.role === "CORE" && (
+        {effectiveSection === 4 && currentUser.role === "CORE" && (
           <VerifyAchievements
             submissions={submissions}
             onApprove={handleApprove}
@@ -373,11 +389,11 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Section 5: Activity & Audit Feed */}
-        {activeSection === 5 && <LiveActivityFeed submissions={submissions} />}
+        {/* Section 5: Activity & Audit Feed (Core Only) */}
+        {effectiveSection === 5 && currentUser.role === "CORE" && <LiveActivityFeed submissions={submissions} />}
 
         {/* Section 6: Nexus System Blueprint */}
-        {activeSection === 6 && <SystemBlueprint />}
+        {effectiveSection === 6 && <SystemBlueprint />}
       </main>
     </div>
   );
